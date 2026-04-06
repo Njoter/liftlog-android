@@ -83,4 +83,7 @@ dependencies {
 
     // OkHttp for logging
     implementation(libs.logging.interceptor)
+
+    // Nav Controller
+    implementation(libs.androidx.navigation.compose)
 }
