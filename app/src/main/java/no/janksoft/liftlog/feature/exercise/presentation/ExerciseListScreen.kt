@@ -28,17 +28,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import no.janksoft.liftlog.core.util.ApiState
 import no.janksoft.liftlog.feature.exercise.data.model.ExerciseSummary
-import no.janksoft.liftlog.ui.theme.LiftLogTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseListScreen(
+    onNavigateToDetail: (Long) -> Unit,
     viewModel: ExerciseViewModel = viewModel()
 ) {
     val searchTerm by viewModel.searchTerm.collectAsState()
@@ -79,7 +78,8 @@ fun ExerciseListScreen(
 
             ExercisesContent(
                 state = exercisesState,
-                onRetry = { viewModel.refreshExercises() }
+                onRetry = { viewModel.refreshExercises() },
+                onClick = { exerciseId -> onNavigateToDetail(exerciseId) }
             )
         }
     }
@@ -88,7 +88,8 @@ fun ExerciseListScreen(
 @Composable
 fun ExercisesContent(
     state: ApiState<List<ExerciseSummary>>,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onClick: (exerciseId: Long) -> Unit,
 ) {
     when (state) {
         is ApiState.Loading -> {
@@ -118,7 +119,10 @@ fun ExercisesContent(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(exercises) { exercise ->
-                        ExerciseCard(exercise = exercise)
+                        ExerciseCard(
+                            exercise = exercise,
+                            onClick = { onClick(exercise.id) }
+                        )
                     }
                 }
             }
@@ -134,10 +138,14 @@ fun ExercisesContent(
 }
 
 @Composable
-fun ExerciseCard(exercise: ExerciseSummary) {
+fun ExerciseCard(
+    exercise: ExerciseSummary,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        onClick = onClick
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -225,13 +233,5 @@ fun ErrorDisplay(errorState: ApiState.Error, onRetry: () -> Unit) {
                 Text("Retry")
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ExerciseListScreenPreview() {
-    LiftLogTheme {
-        ExerciseListScreen()
     }
 }
