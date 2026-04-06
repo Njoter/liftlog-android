@@ -29,6 +29,9 @@ class ExerciseViewModel : ViewModel() {
     private val _selectedExercise = MutableStateFlow<ApiState<Exercise>>(ApiState.Loading)
     val selectedExercise: StateFlow<ApiState<Exercise>> = _selectedExercise.asStateFlow()
 
+    private val _deleteState = MutableStateFlow<ApiState<Unit>?>(ApiState.Loading)
+    val deleteState: StateFlow<ApiState<Unit>?> = _deleteState.asStateFlow()
+
     private val exerciseRepository = ExerciseRepository()
 
     fun updateSearchTerm(newText: String) {
@@ -45,6 +48,10 @@ class ExerciseViewModel : ViewModel() {
 
     fun clearSelectedExercise() {
         _selectedExerciseId.value = null
+    }
+
+    fun clearDeleteState() {
+        _deleteState.value = null
     }
 
     fun fetchAllExercises() {
@@ -72,6 +79,20 @@ class ExerciseViewModel : ViewModel() {
             }
 
             _selectedExercise.value = result
+        }
+    }
+
+    fun deleteExercise(id: Long) {
+        viewModelScope.launch {
+            _deleteState.value = ApiState.Loading
+
+            val result = exerciseRepository.deleteExercise(id)
+
+            if (result is ApiState.Error) {
+                logError(result, "Error deleting exercise")
+            }
+
+            _deleteState.value = result
         }
     }
 
