@@ -1,5 +1,6 @@
 package no.janksoft.liftlog.feature.exercise.presentation
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,29 +10,41 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 import no.janksoft.liftlog.core.util.ApiState
 import no.janksoft.liftlog.feature.exercise.data.model.Exercise
 
@@ -43,6 +56,23 @@ fun ExerciseDetailsScreen(
     viewModel: ExerciseViewModel = viewModel()
 ) {
     val selectedExerciseState by viewModel.selectedExercise.collectAsStateWithLifecycle()
+    val deleteState by viewModel.deleteState.collectAsStateWithLifecycle()
+
+    // Handle delete result
+    LaunchedEffect(deleteState) {
+        when (deleteState) {
+            is ApiState.Success -> {
+                viewModel.clearDeleteState()
+                navController.navigateUp()
+            }
+            is ApiState.Error -> {
+                val errorMsg = (deleteState as ApiState.Error).message
+                // TODO: Add some kind of message for the result of the delete
+                viewModel.clearDeleteState()
+            }
+            else -> {}
+        }
+    }
 
     LaunchedEffect(exerciseId) {
         viewModel.fetchExerciseById(exerciseId)
@@ -63,6 +93,15 @@ fun ExerciseDetailsScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ),
+            )
+        },
+        bottomBar = {
+            ExerciseDetailBottomBar(
+                state = selectedExerciseState,
+                onEdit = {},
+                onDelete = { exerciseId ->
+                    viewModel.deleteExercise(exerciseId)
+                }
             )
         }
     ) { paddingValues ->
@@ -120,6 +159,71 @@ fun ExerciseDetailContent(
 
         is ApiState.Error -> {
             Text(state.errorResponse?.message ?: "Error fetching exercise")
+        }
+    }
+}
+
+@Composable
+fun ExerciseDetailBottomBar(
+    state: ApiState<Exercise>,
+    onEdit: () -> Unit,
+    onDelete: (exerciseId: Long) -> Unit
+) {
+    when (state) {
+        is ApiState.Success -> {
+            BottomAppBar(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    tonalElevation = 3.dp,
+                    shadowElevation = 3.dp,
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Edit button
+                        OutlinedButton(
+                            onClick = onEdit,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Edit")
+                        }
+
+                        // Delete button
+                        Button(
+                            onClick = { onDelete(state.data.id) },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Delete")
+                        }
+                    }
+                }
+            }
+        } else -> {
+
         }
     }
 }
