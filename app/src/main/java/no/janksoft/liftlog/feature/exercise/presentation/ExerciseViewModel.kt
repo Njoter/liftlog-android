@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import no.janksoft.liftlog.core.util.ApiState
 import no.janksoft.liftlog.feature.exercise.data.dto.CreateExerciseRequest
+import no.janksoft.liftlog.feature.exercise.data.dto.UpdateExerciseRequest
 import no.janksoft.liftlog.feature.exercise.data.model.Exercise
 import no.janksoft.liftlog.feature.exercise.data.model.ExerciseSummary
 import no.janksoft.liftlog.feature.exercise.repository.ExerciseRepository
@@ -17,7 +18,6 @@ class ExerciseViewModel : ViewModel() {
 
     private val TAG = "ExerciseViewModel"
 
-    // State for the search field
     private val _searchTerm = MutableStateFlow("")
     val searchTerm: StateFlow<String> = _searchTerm.asStateFlow()
 
@@ -35,6 +35,9 @@ class ExerciseViewModel : ViewModel() {
 
     private val _createState = MutableStateFlow<ApiState<Exercise>>(ApiState.Loading)
     val createState: StateFlow<ApiState<Exercise>> = _createState.asStateFlow()
+
+    private val _updateState = MutableStateFlow<ApiState<Exercise>>(ApiState.Loading)
+    val updateState: StateFlow<ApiState<Exercise>> = _updateState.asStateFlow()
 
     private val exerciseRepository = ExerciseRepository()
 
@@ -111,6 +114,20 @@ class ExerciseViewModel : ViewModel() {
             }
 
             _createState.value = result
+        }
+    }
+
+    fun updateExercise(request: UpdateExerciseRequest) {
+        viewModelScope.launch {
+            _updateState.value = ApiState.Loading
+
+            val result = exerciseRepository.updateExercise(request)
+
+            if (result is ApiState.Error) {
+                logError(result, "Error updating exercise")
+            }
+
+            _updateState.value = result
         }
     }
 

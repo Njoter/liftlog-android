@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import no.janksoft.liftlog.feature.exercise.presentation.CreateExerciseScreen
 import no.janksoft.liftlog.feature.exercise.presentation.ExerciseDetailsScreen
 import no.janksoft.liftlog.feature.exercise.presentation.ExerciseListScreen
+import no.janksoft.liftlog.feature.exercise.presentation.UpdateExerciseScreen
 
 @Composable
 fun LiftLogApp() {
@@ -45,6 +46,24 @@ fun LiftLogApp() {
                 exerciseId = exerciseId,
                 navController = navController
             )
+        }
+
+        // Update screen
+        composable(
+            "update_exercise/{exerciseId}",
+            arguments = listOf(
+                navArgument("exerciseId") {
+                    type = NavType.LongType
+                    nullable = false
+                }
+            )
+        ) { backStackEntry ->
+            val exerciseId = backStackEntry.arguments?.getLong("exerciseId") ?: 0L
+            UpdateExerciseScreen(
+                exerciseId = exerciseId,
+                navController = navController
+            )
+
         }
 
         // Create screen
