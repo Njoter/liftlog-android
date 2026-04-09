@@ -93,7 +93,9 @@ fun ExerciseDetailsScreen(
         bottomBar = {
             ExerciseDetailBottomBar(
                 state = selectedExerciseState,
-                onEdit = {},
+                onEdit = {
+                    navController.navigate("update_exercise/$exerciseId")
+                },
                 onDelete = { exerciseId ->
                     viewModel.deleteExercise(exerciseId)
                 }

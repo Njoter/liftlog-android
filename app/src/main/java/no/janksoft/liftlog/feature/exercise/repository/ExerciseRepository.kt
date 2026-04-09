@@ -5,6 +5,7 @@ import no.janksoft.liftlog.core.network.ErrorResponse
 import no.janksoft.liftlog.core.network.RetrofitClient
 import no.janksoft.liftlog.core.util.ApiState
 import no.janksoft.liftlog.feature.exercise.data.dto.CreateExerciseRequest
+import no.janksoft.liftlog.feature.exercise.data.dto.UpdateExerciseRequest
 import no.janksoft.liftlog.feature.exercise.data.model.Exercise
 import no.janksoft.liftlog.feature.exercise.data.model.ExerciseSummary
 import okio.IOException
@@ -153,6 +154,49 @@ class ExerciseRepository {
     suspend fun createExercise(request: CreateExerciseRequest): ApiState<Exercise> {
         return try {
             val response = exerciseService.createExercise(request)
+
+            if (response.isSuccessful) {
+                val exercise = response.body()
+                if (exercise != null) {
+                    ApiState.Success(exercise)
+                } else {
+                    ApiState.Error(
+                        message = "Received empty response from server",
+                        statusCode = response.code()
+                    )
+                }
+            } else {
+                val errorResponse = parseErrorResponse(response.errorBody()?.string())
+                ApiState.Error(
+                    message = errorResponse?.message ?: "Server error: ${response.message()}",
+                    errorResponse = errorResponse,
+                    statusCode = response.code()
+                )
+            }
+        } catch (e: IOException) {
+            ApiState.Error(
+                message = "Network error: ${e.message}",
+                errorResponse = null,
+                statusCode = null
+            )
+        } catch (e: HttpException) {
+            ApiState.Error(
+                message = "HTTP error: ${e.message}",
+                errorResponse = null,
+                statusCode = e.code()
+            )
+        } catch (e: Exception) {
+            ApiState.Error(
+                message = "Unexpected error: ${e.message}",
+                errorResponse = null,
+                statusCode = null
+            )
+        }
+    }
+
+    suspend fun updateExercise(request: UpdateExerciseRequest): ApiState<Exercise> {
+        return try {
+            val response = exerciseService.updateExercise(request)
 
             if (response.isSuccessful) {
                 val exercise = response.body()
