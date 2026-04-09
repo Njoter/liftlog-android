@@ -113,6 +113,7 @@ fun ExerciseListScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
+            // TODO: This should be a searchBar
             TextField(
                 value = searchTerm,
                 onValueChange = { viewModel.updateSearchTerm(it) },
