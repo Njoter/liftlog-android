@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import no.janksoft.liftlog.feature.exercise.presentation.CreateExerciseScreen
 import no.janksoft.liftlog.feature.exercise.presentation.ExerciseDetailsScreen
 import no.janksoft.liftlog.feature.exercise.presentation.ExerciseListScreen
 
@@ -22,6 +23,9 @@ fun LiftLogApp() {
             ExerciseListScreen(
                 onNavigateToDetail = { exerciseId ->
                     navController.navigate("exercise_detail/$exerciseId")
+                },
+                onNavigateToCreate = {
+                    navController.navigate("create_exercise")
                 }
             )
         }
@@ -40,6 +44,13 @@ fun LiftLogApp() {
             ExerciseDetailsScreen(
                 exerciseId = exerciseId,
                 navController = navController
+            )
+        }
+
+        // Create screen
+        composable("create_exercise") {
+            CreateExerciseScreen(
+                navController
             )
         }
     }

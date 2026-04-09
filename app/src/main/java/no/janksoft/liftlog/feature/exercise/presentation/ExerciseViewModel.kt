@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import no.janksoft.liftlog.core.util.ApiState
+import no.janksoft.liftlog.feature.exercise.data.dto.CreateExerciseRequest
 import no.janksoft.liftlog.feature.exercise.data.model.Exercise
 import no.janksoft.liftlog.feature.exercise.data.model.ExerciseSummary
 import no.janksoft.liftlog.feature.exercise.repository.ExerciseRepository
@@ -31,6 +32,9 @@ class ExerciseViewModel : ViewModel() {
 
     private val _deleteState = MutableStateFlow<ApiState<Unit>?>(ApiState.Loading)
     val deleteState: StateFlow<ApiState<Unit>?> = _deleteState.asStateFlow()
+
+    private val _createState = MutableStateFlow<ApiState<Exercise>>(ApiState.Loading)
+    val createState: StateFlow<ApiState<Exercise>> = _createState.asStateFlow()
 
     private val exerciseRepository = ExerciseRepository()
 
@@ -93,6 +97,20 @@ class ExerciseViewModel : ViewModel() {
             }
 
             _deleteState.value = result
+        }
+    }
+
+    fun createExercise(request: CreateExerciseRequest) {
+        viewModelScope.launch {
+            _createState.value = ApiState.Loading
+
+            val result = exerciseRepository.createExercise(request)
+
+            if (result is ApiState.Error) {
+                logError(result, "Error creating exercise")
+            }
+
+            _createState.value = result
         }
     }
 
