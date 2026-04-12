@@ -3,25 +3,41 @@ package no.janksoft.liftlog.feature.user.presentation
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.selects.select
 import no.janksoft.liftlog.core.ui.LiftLogTopBar
 import no.janksoft.liftlog.core.util.ApiState
 import no.janksoft.liftlog.feature.user.data.dto.LoginRequest
@@ -94,34 +110,94 @@ fun LoginScreenContent(
     paddingValues: PaddingValues
 ) {
     val inputValue by viewModel.inputValue.collectAsStateWithLifecycle()
+    // Create a FocusRequester for the TextField
+    val focusRequester = remember { FocusRequester() }
+
+    // Crazy stuff for putting the cursor on the end
+    var textFieldValue by remember {
+        mutableStateOf(
+            TextFieldValue(inputValue, selection = TextRange(inputValue.length))
+        )
+    }
+
+    LaunchedEffect(errorMessage) {
+        if (errorMessage != null) {
+            textFieldValue = TextFieldValue(
+                inputValue,
+                selection = TextRange(inputValue.length)
+            )
+        }
+    }
+
+    // Request focus on text field
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .padding(paddingValues)
-            .padding(vertical = 8.dp)
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.weight(0.5f))
+
+        // Header content
         Text(
-            text = "Username",
-            textDecoration = TextDecoration.Underline
+            text = "Welcome To LiftLog",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Enter your username to continue",
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Username text field
+        // Form
         OutlinedTextField(
-            value = inputValue,
-            onValueChange = { viewModel.updateInputValue(it) }
+            value = textFieldValue,
+            onValueChange = { newValue ->
+                textFieldValue = newValue
+                viewModel.updateInputValue(newValue.text)
+
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester),
+            label = { Text("Username") },
+            singleLine = true,
+            isError = errorMessage != null,
+            shape = RoundedCornerShape(16.dp),
+            supportingText = {
+                if (errorMessage != null) {
+                    Text(errorMessage)
+                }
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = { onLogin(inputValue) }
+            )
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Login button
-        FilledTonalButton(
+        Button(
             onClick = { onLogin(inputValue) },
-            enabled = !isLoading
+            modifier = Modifier
+                .fillMaxWidth(0.5f)
+                .height(52.dp),
+            enabled = !isLoading && inputValue.isNotBlank(),
+            shape = RoundedCornerShape(32.dp)
         ) {
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(20.dp))
@@ -130,21 +206,19 @@ fun LoginScreenContent(
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
 
         // New user button
         OutlinedButton(
             onClick = onNewUser,
+            modifier = Modifier
+                .fillMaxWidth(0.5f)
+                .height(52.dp),
             enabled = !isLoading
         ) {
             Text("Create new user")
         }
 
-        if (errorMessage != null) {
-            Text(
-                text = errorMessage,
-                color = MaterialTheme.colorScheme.error
-            )
-        }
+        Spacer(modifier = Modifier.weight(2.5f))
     }
 }
