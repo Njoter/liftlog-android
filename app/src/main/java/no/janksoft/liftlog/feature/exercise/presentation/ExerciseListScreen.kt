@@ -16,8 +16,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -31,13 +29,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import no.janksoft.liftlog.core.ui.ErrorDisplay
+import no.janksoft.liftlog.core.ui.LiftLogLoadingIndicator
 import no.janksoft.liftlog.core.ui.LiftLogTopBar
 import no.janksoft.liftlog.core.util.ApiState
 import no.janksoft.liftlog.feature.exercise.data.model.ExerciseSummary
@@ -45,15 +44,16 @@ import no.janksoft.liftlog.feature.exercise.data.model.ExerciseSummary
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseListScreen(
+    userId: Long,
     onNavigateToDetail: (Long) -> Unit,
     onNavigateToCreate: () -> Unit,
-    viewModel: ExerciseViewModel = viewModel()
+    viewModel: ExerciseListViewModel = viewModel()
 ) {
-    val searchTerm by viewModel.searchTerm.collectAsState()
+    val searchTerm by viewModel.searchTerm.collectAsStateWithLifecycle()
     val exercisesState by viewModel.exerciseSummaries.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
-        viewModel.fetchAllExercises()
+        viewModel.fetchAllExercises(userId)
     }
 
     Scaffold(
@@ -122,7 +122,7 @@ fun ExerciseListScreen(
 
             ExercisesContent(
                 state = exercisesState,
-                onRetry = { viewModel.refreshExercises() },
+                onRetry = { viewModel.refreshExercises(userId) },
                 onClick = { exerciseId -> onNavigateToDetail(exerciseId) }
             )
         }
@@ -136,17 +136,10 @@ fun ExercisesContent(
     onClick: (exerciseId: Long) -> Unit,
 ) {
     when (state) {
+        ApiState.Idle -> {}
+
         is ApiState.Loading -> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator()
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Loading exercises...")
-                }
-            }
+            LiftLogLoadingIndicator("Loading exercises ...")
         }
 
         is ApiState.Success -> {
@@ -175,6 +168,7 @@ fun ExercisesContent(
         is ApiState.Error -> {
             ErrorDisplay(
                 errorState = state,
+                headerMessage = "Error Loading exercises",
                 onRetry = onRetry
             )
         }
@@ -210,72 +204,6 @@ fun ExerciseCard(
                 text = "Sets: ${exercise.sets}",
                 style = MaterialTheme.typography.bodyMedium
             )
-        }
-    }
-}
-
-@Composable
-fun ErrorDisplay(errorState: ApiState.Error, onRetry: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = "Error Loading Exercises",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onErrorContainer
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (errorState.errorResponse != null) {
-                Card(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp)
-                    ) {
-                        Text(
-                            text = "Error Code: ${errorState.errorResponse.code}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Text(
-                            text = "Status: ${errorState.errorResponse.status}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = errorState.errorResponse.message,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    }
-                }
-            } else {
-                Text(
-                    text = errorState.message,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onErrorContainer
-                )
-            }
-
-            Button(
-                onClick = onRetry,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onErrorContainer,
-                    contentColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Text("Retry")
-            }
         }
     }
 }

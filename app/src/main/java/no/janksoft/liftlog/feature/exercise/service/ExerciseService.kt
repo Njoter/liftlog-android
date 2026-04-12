@@ -13,8 +13,8 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface ExerciseService {
-    @GET("api/v1/exercises")
-    suspend fun fetchAllExercises(): Response<List<ExerciseSummary>>
+    @GET("api/v1/exercises/user/{userId}")
+    suspend fun fetchAllExercises(@Path("userId") userId: Long): Response<List<ExerciseSummary>>
 
     @GET("api/v1/exercises/{id}")
     suspend fun fetchExercise(@Path("id") id: Long): Response<Exercise>

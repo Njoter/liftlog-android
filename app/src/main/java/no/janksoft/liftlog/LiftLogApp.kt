@@ -10,6 +10,7 @@ import no.janksoft.liftlog.feature.exercise.presentation.CreateExerciseScreen
 import no.janksoft.liftlog.feature.exercise.presentation.ExerciseDetailsScreen
 import no.janksoft.liftlog.feature.exercise.presentation.ExerciseListScreen
 import no.janksoft.liftlog.feature.exercise.presentation.UpdateExerciseScreen
+import no.janksoft.liftlog.feature.user.presentation.LoginScreen
 
 @Composable
 fun LiftLogApp() {
@@ -17,16 +18,34 @@ fun LiftLogApp() {
 
     NavHost(
         navController = navController,
-        startDestination = "exercise_list"
+        startDestination = "login"
     ) {
+        // Login screen
+        composable("login") {
+            LoginScreen(
+                onValidated = { userId -> navController.navigate("exercise_list/$userId") }
+            )
+        }
+
         // List screen
-        composable("exercise_list") {
+        composable(
+            "exercise_list/{userId}",
+            arguments = listOf(
+                navArgument("userId") {
+                    type = NavType.LongType
+                    nullable = false
+                }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getLong("userId")
+                ?: error("userId is required for exercise_list screen")
             ExerciseListScreen(
+                userId = userId,
                 onNavigateToDetail = { exerciseId ->
                     navController.navigate("exercise_detail/$exerciseId")
                 },
                 onNavigateToCreate = {
-                    navController.navigate("create_exercise")
+                    navController.navigate("create_exercise/$userId")
                 }
             )
         }
@@ -41,7 +60,8 @@ fun LiftLogApp() {
                 }
             )
         ) { backStackEntry ->
-            val exerciseId = backStackEntry.arguments?.getLong("exerciseId") ?: 0L
+            val exerciseId = backStackEntry.arguments?.getLong("exerciseId")
+                ?: error("Exercise ID is required to view exercise details")
             ExerciseDetailsScreen(
                 exerciseId = exerciseId,
                 navController = navController
@@ -58,7 +78,8 @@ fun LiftLogApp() {
                 }
             )
         ) { backStackEntry ->
-            val exerciseId = backStackEntry.arguments?.getLong("exerciseId") ?: 0L
+            val exerciseId = backStackEntry.arguments?.getLong("exerciseId")
+                ?: error("Exercise ID is required to update exercise")
             UpdateExerciseScreen(
                 exerciseId = exerciseId,
                 navController = navController
@@ -67,9 +88,20 @@ fun LiftLogApp() {
         }
 
         // Create screen
-        composable("create_exercise") {
+        composable(
+            "create_exercise/{userId}",
+            arguments = listOf(
+                navArgument("userId") {
+                    type = NavType.LongType
+                    nullable = false
+                }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getLong("userId")
+                ?: error("User ID is required to create exercise")
             CreateExerciseScreen(
-                navController
+                userId = userId,
+                navController = navController
             )
         }
     }
