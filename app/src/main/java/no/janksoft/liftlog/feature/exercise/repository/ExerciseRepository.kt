@@ -16,9 +16,9 @@ class ExerciseRepository {
     private val exerciseService = RetrofitClient.exerciseService
     private val gson = Gson()
 
-    suspend fun fetchAllExercises(): ApiState<List<ExerciseSummary>> {
+    suspend fun fetchAllExercises(userId: Long): ApiState<List<ExerciseSummary>> {
         return try {
-            val response = exerciseService.fetchAllExercises()
+            val response = exerciseService.fetchAllExercises(userId)
             
             if (response.isSuccessful) {
                 val exercises = response.body()

@@ -1,12 +1,9 @@
 package no.janksoft.liftlog.feature.exercise.presentation
 
-import android.R
-import android.R.attr.name
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -17,35 +14,28 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import no.janksoft.liftlog.core.ui.ErrorDisplay
+import no.janksoft.liftlog.core.ui.LiftLogLoadingIndicator
 import no.janksoft.liftlog.core.ui.LiftLogTopBar
 import no.janksoft.liftlog.core.util.ApiState
 import no.janksoft.liftlog.feature.exercise.data.dto.UpdateExerciseRequest
-import no.janksoft.liftlog.feature.exercise.data.model.Exercise
-import kotlin.text.isEmpty
 import kotlin.text.toDouble
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,59 +43,29 @@ import kotlin.text.toDouble
 fun UpdateExerciseScreen(
     navController: NavController,
     exerciseId: Long,
-    viewModel: ExerciseViewModel = viewModel()
+    viewModel: ExerciseFormViewModel = viewModel()
 ) {
     val updateState by viewModel.updateState.collectAsStateWithLifecycle()
     val selectedExerciseState by viewModel.selectedExercise.collectAsStateWithLifecycle()
+    val isFormValid by viewModel.isFormValid.collectAsStateWithLifecycle()
 
-    var id by remember { mutableLongStateOf(0) }
-    var name by remember { mutableStateOf("") }
-    var weight by remember { mutableStateOf("") }
-    var reps by remember { mutableStateOf("") }
-    var sets by remember { mutableStateOf("") }
+    val id by viewModel.id.collectAsStateWithLifecycle()
+    val name by viewModel.name.collectAsStateWithLifecycle()
+    val weight by viewModel.weightKg.collectAsStateWithLifecycle()
+    val reps by viewModel.reps.collectAsStateWithLifecycle()
+    val sets by viewModel.sets.collectAsStateWithLifecycle()
 
-    var nameError by remember { mutableStateOf(true) }
-    var weightError by remember { mutableStateOf(false) }
-    var repsError by remember { mutableStateOf(false) }
-    var setsError by remember { mutableStateOf(false) }
+    val isLoading = updateState == ApiState.Loading
 
-    val isFormValid = !nameError && !weightError && !repsError && !setsError
-
+    // Fetch selected exercise
     LaunchedEffect(exerciseId) {
         viewModel.fetchExerciseById(exerciseId)
-    }
-
-    LaunchedEffect(selectedExerciseState) {
-        when (selectedExerciseState) {
-            is ApiState.Success -> {
-                val exercise = (selectedExerciseState as ApiState.Success<Exercise>).data
-                id = exercise.id
-                name = exercise.name
-                weight = exercise.weightKg.toString()
-                reps = exercise.reps.toString()
-                sets = exercise.sets.toString()
-                nameError = name.isEmpty()
-            }
-            else -> {}
-        }
-    }
-
-    when (updateState) {
-        ApiState.Loading -> {
-            // TODO
-        }
-        is ApiState.Success -> {
-            navController.navigateUp()
-        }
-        is ApiState.Error -> {
-            // TODO
-        }
     }
 
     Scaffold(
         topBar = {
             LiftLogTopBar(
-                "Create Exercise",
+                "Update Exercise",
                 { navController.navigateUp() }
             )
         },
@@ -131,7 +91,7 @@ fun UpdateExerciseScreen(
                         OutlinedButton(
                             onClick = {
                                 viewModel.updateExercise(UpdateExerciseRequest(
-                                    id,
+                                    id!!,
                                     name,
                                     weight.toDouble(),
                                     reps.toInt(),
@@ -139,7 +99,7 @@ fun UpdateExerciseScreen(
                                 )
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = isFormValid
+                            enabled = isFormValid && !isLoading
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Create,
@@ -154,124 +114,117 @@ fun UpdateExerciseScreen(
             }
         }
     ) { paddingValues ->
-        when (selectedExerciseState) {
-            is ApiState.Success -> {
-                val selectedExercise = (selectedExerciseState as ApiState.Success<Exercise>).data
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(paddingValues)
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 8.dp),
-                ) {
-                    // Name field
-                    Text(text = "Exercise Name", textDecoration = TextDecoration.Underline)
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = {
-                            name = it
-                            nameError = name.isEmpty()
-                        },
-                        placeholder = { Text("e.g., Bench Press") },
-                        isError = nameError,
-                        supportingText = {
-                            if (nameError) {
-                                Text("Exercise name is required")
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Weight field
-                    Text(text = "Weight (kg)", textDecoration = TextDecoration.Underline)
-                    OutlinedTextField(
-                        value = weight,
-                        onValueChange = {
-                            weight = it
-                            if (!weight.isEmpty()) {
-                                weightError = weight.toDouble() !in 0.0..999.0
-                            } else {
-                                weightError = true
-                            }
-                        },
-                        isError = weightError,
-                        supportingText = {
-                            if (weightError) {
-                                Text("Weight must be between 0 and 999")
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Reps field
-                    Text(text = "Reps", textDecoration = TextDecoration.Underline)
-                    OutlinedTextField(
-                        value = reps,
-                        onValueChange = {
-                            reps = it
-                            if (!reps.isEmpty()) {
-                                repsError = reps.toInt() !in 1 .. 999
-                            } else {
-                                repsError = true
-                            }
-                        },
-                        isError = repsError,
-                        supportingText = {
-                            if (repsError) {
-                                Text("Reps must be between 0 and 999")
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Sets field
-                    Text(text = "Sets", textDecoration = TextDecoration.Underline)
-                    OutlinedTextField(
-                        value = sets,
-                        onValueChange = {
-                            sets = it
-                            if (!sets.isEmpty()) {
-                                setsError = sets.toInt() !in 1 .. 999
-                            } else {
-                                setsError = true
-                            }
-                        },
-                        isError = setsError,
-                        supportingText = {
-                            if (setsError) {
-                                Text("Sets must be between 0 and 999")
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                }
+        when {
+            updateState == ApiState.Loading -> {
+                LiftLogLoadingIndicator("Updating exercise ...")
             }
+            updateState is ApiState.Error -> {
+                val error = (updateState as ApiState.Error).errorResponse
+                val errorMessage = error?.message ?: "Error updating exercise"
 
-            is ApiState.Loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                UpdateExerciseContent(
+                    viewModel = viewModel,
+                    errorMessage = errorMessage,
+                    paddingValues
+                )
             }
+            selectedExerciseState is ApiState.Loading -> {
+                LiftLogLoadingIndicator("Loading exercise ...")
+            }
+            selectedExerciseState is ApiState.Error -> {
+                ErrorDisplay(
+                    errorState = selectedExerciseState as ApiState.Error,
+                    headerMessage = "Error loading exercise",
+                    onRetry = { viewModel.fetchExerciseById(exerciseId) }
+                )
+            }
+            selectedExerciseState is ApiState.Success -> {
+                UpdateExerciseContent(
+                    viewModel = viewModel,
+                    errorMessage = null,
+                    paddingValues = paddingValues
+                )
+            }
+            else -> {}
+        }
+    }
+}
 
-            is ApiState.Error -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Error loading exercise: ${(selectedExerciseState as ApiState.Error).message}")
-                }
-            }
+@Composable
+fun UpdateExerciseContent(
+    viewModel: ExerciseFormViewModel,
+    errorMessage: String?,
+    paddingValues: PaddingValues
+) {
+    val name by viewModel.name.collectAsStateWithLifecycle()
+    val weight by viewModel.weightKg.collectAsStateWithLifecycle()
+    val reps by viewModel.reps.collectAsStateWithLifecycle()
+    val sets by viewModel.sets.collectAsStateWithLifecycle()
+
+    val nameError by viewModel.nameError.collectAsStateWithLifecycle()
+    val weightError by viewModel.weightError.collectAsStateWithLifecycle()
+    val repsError by viewModel.repsError.collectAsStateWithLifecycle()
+    val setsError by viewModel.setsError.collectAsStateWithLifecycle()
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(paddingValues)
+            .padding(horizontal = 16.dp)
+            .padding(top = 8.dp),
+    ) {
+        // Name field
+        ExerciseFormField(
+            label = "Exercise Name",
+            value = name,
+            onValueChange = { viewModel.updateName(it) },
+            error = nameError,
+            errorMessage = "Exercise name is required",
+            placeholder = "e.g., Bench Press"
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Weight field
+        ExerciseFormField(
+            label = "Weight (kg)",
+            value = weight,
+            onValueChange = { viewModel.updateWeightKg(it) },
+            error = weightError,
+            errorMessage = "Weight must be between 0 and 999",
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Reps field
+        ExerciseFormField(
+            label = "Reps",
+            value = reps,
+            onValueChange = { viewModel.updateReps(it) },
+            error = repsError,
+            errorMessage = "Reps must be between 1 and 999",
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Sets field
+        ExerciseFormField(
+            label = "Sets",
+            value = sets,
+            onValueChange = { viewModel.updateSets(it) },
+            error = setsError,
+            errorMessage = "Sets must be between 1 and 999",
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        )
+
+        if (errorMessage != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error
+            )
         }
     }
 }
