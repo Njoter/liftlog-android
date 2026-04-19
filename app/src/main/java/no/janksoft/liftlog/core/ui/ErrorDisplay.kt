@@ -20,7 +20,40 @@ import no.janksoft.liftlog.core.util.ApiState
 fun ErrorDisplay(
     errorState: ApiState.Error,
     headerMessage: String,
-    onRetry: () -> Unit
+    onCancel: () -> Unit
+) {
+    ErrorDisplayContent(
+        errorState = errorState,
+        headerMessage = headerMessage,
+        hasRetry = false,
+        onRetry = {},
+        onCancel = onCancel
+    )
+}
+
+@Composable
+fun ErrorDisplayWithRetry(
+    errorState: ApiState.Error,
+    headerMessage: String,
+    onRetry: () -> Unit,
+    onCancel: () -> Unit
+) {
+    ErrorDisplayContent(
+        errorState = errorState,
+        headerMessage = headerMessage,
+        hasRetry = true,
+        onRetry = onRetry,
+        onCancel = onCancel
+    )
+}
+
+@Composable
+private fun ErrorDisplayContent(
+    errorState: ApiState.Error,
+    headerMessage: String,
+    hasRetry: Boolean,
+    onRetry: () -> Unit,
+    onCancel: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -72,16 +105,27 @@ fun ErrorDisplay(
                 )
             }
 
-            Button(
-                onClick = onRetry,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onErrorContainer,
-                    contentColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Text("Retry")
+            if (hasRetry) {
+                ErrorDisplayButton(onRetry, "Retry")
             }
+            ErrorDisplayButton(onCancel, "Cancel")
         }
+    }
+}
+
+@Composable
+private fun ErrorDisplayButton(
+    onClick: () -> Unit,
+    text: String
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.onErrorContainer,
+            contentColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Text(text)
     }
 }

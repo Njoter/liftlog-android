@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import no.janksoft.liftlog.core.ui.ErrorDisplay
+import no.janksoft.liftlog.core.ui.ErrorDisplayWithRetry
 import no.janksoft.liftlog.core.ui.LiftLogLoadingIndicator
 import no.janksoft.liftlog.core.ui.LiftLogTopBar
 import no.janksoft.liftlog.core.util.ApiState
@@ -103,8 +102,8 @@ fun ExerciseListScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues) // Makes sure it's not overlapping with the top bar
-                .padding(horizontal = 16.dp) // Extra padding
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
                 .padding(top = 8.dp, bottom = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
@@ -123,6 +122,7 @@ fun ExerciseListScreen(
             ExercisesContent(
                 state = exercisesState,
                 onRetry = { viewModel.refreshExercises(userId) },
+                onCancel = {},
                 onClick = { exerciseId -> onNavigateToDetail(exerciseId) }
             )
         }
@@ -130,9 +130,10 @@ fun ExerciseListScreen(
 }
 
 @Composable
-fun ExercisesContent(
+private fun ExercisesContent(
     state: ApiState<List<ExerciseSummary>>,
     onRetry: () -> Unit,
+    onCancel: () -> Unit,
     onClick: (exerciseId: Long) -> Unit,
 ) {
     when (state) {
@@ -166,17 +167,18 @@ fun ExercisesContent(
         }
 
         is ApiState.Error -> {
-            ErrorDisplay(
+            ErrorDisplayWithRetry(
                 errorState = state,
                 headerMessage = "Error Loading exercises",
-                onRetry = onRetry
+                onRetry = onRetry,
+                onCancel = onCancel
             )
         }
     }
 }
 
 @Composable
-fun ExerciseCard(
+private fun ExerciseCard(
     exercise: ExerciseSummary,
     onClick: () -> Unit
 ) {

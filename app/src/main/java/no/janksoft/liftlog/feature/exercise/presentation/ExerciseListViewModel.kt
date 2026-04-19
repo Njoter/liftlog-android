@@ -14,7 +14,7 @@ import no.janksoft.liftlog.feature.exercise.repository.ExerciseRepository
 
 class ExerciseListViewModel : ViewModel() {
 
-    private val TAG = "ExerciseViewModel"
+    private val TAG = "ExerciseListViewModel"
 
     // Search field in exercise list
     private val _searchTerm = MutableStateFlow("")

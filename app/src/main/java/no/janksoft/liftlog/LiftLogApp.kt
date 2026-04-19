@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import no.janksoft.liftlog.feature.exercise.presentation.CreateExerciseScreen
 import no.janksoft.liftlog.feature.exercise.presentation.ExerciseDetailsScreen
 import no.janksoft.liftlog.feature.exercise.presentation.ExerciseListScreen
+import no.janksoft.liftlog.feature.workout.presentation.LogSetScreen
 import no.janksoft.liftlog.feature.exercise.presentation.UpdateExerciseScreen
 import no.janksoft.liftlog.feature.user.presentation.LoginScreen
 
@@ -42,7 +43,7 @@ fun LiftLogApp() {
             ExerciseListScreen(
                 userId = userId,
                 onNavigateToDetail = { exerciseId ->
-                    navController.navigate("exercise_detail/$exerciseId")
+                    navController.navigate("exercise_detail/$userId/$exerciseId")
                 },
                 onNavigateToCreate = {
                     navController.navigate("create_exercise/$userId")
@@ -52,17 +53,48 @@ fun LiftLogApp() {
 
         // Detail screen
         composable(
-            "exercise_detail/{exerciseId}",
+            "exercise_detail/{userId}/{exerciseId}",
             arguments = listOf(
+                navArgument("userId") {
+                    type = NavType.LongType
+                    nullable = false
+                },
                 navArgument("exerciseId") {
                     type = NavType.LongType
                     nullable = false
                 }
             )
         ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getLong("userId")
+                ?: error("User ID is required to view exercise details")
             val exerciseId = backStackEntry.arguments?.getLong("exerciseId")
                 ?: error("Exercise ID is required to view exercise details")
             ExerciseDetailsScreen(
+                userId = userId,
+                exerciseId = exerciseId,
+                navController = navController
+            )
+        }
+
+        composable(
+            "log_set/{userId}/{exerciseId}",
+            arguments = listOf(
+                navArgument("userId") {
+                    type = NavType.LongType
+                    nullable = false
+                },
+                navArgument("exerciseId") {
+                    type = NavType.LongType
+                    nullable = false
+                }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getLong("userId")
+                ?: error("User ID is required to log set")
+            val exerciseId = backStackEntry.arguments?.getLong("exerciseId")
+                ?: error("Exercise ID is required to log set")
+            LogSetScreen(
+                userId = userId,
                 exerciseId = exerciseId,
                 navController = navController
             )
