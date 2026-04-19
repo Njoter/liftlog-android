@@ -93,7 +93,7 @@ fun ExerciseDetailsScreen(
     ) { paddingValues ->
         ExerciseDetailContent(
             state = selectedExerciseState,
-            onLogSet = { navController.navigate("log_set/$exerciseId/$userId") },
+            onLogSet = { navController.navigate("log_set/$userId/$exerciseId") },
             onRetry = { viewModel.fetchExerciseById(exerciseId) },
             onCancel = { navController.navigateUp() },
             paddingValues = paddingValues
