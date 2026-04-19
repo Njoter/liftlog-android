@@ -3,11 +3,11 @@ package no.janksoft.liftlog.core.network
 import no.janksoft.liftlog.BuildConfig
 import no.janksoft.liftlog.feature.exercise.service.ExerciseService
 import no.janksoft.liftlog.feature.user.service.UserService
+import no.janksoft.liftlog.feature.workout.service.WorkoutSetService
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.create
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
@@ -39,5 +39,9 @@ object RetrofitClient {
 
     val userService: UserService by lazy {
         retrofit.create(UserService::class.java)
+    }
+
+    val workoutSetService: WorkoutSetService by lazy {
+        retrofit.create(WorkoutSetService::class.java)
     }
 }

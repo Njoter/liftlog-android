@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import no.janksoft.liftlog.core.ui.ErrorDisplay
+import no.janksoft.liftlog.core.ui.ErrorDisplayWithRetry
 import no.janksoft.liftlog.core.ui.LiftLogLoadingIndicator
 import no.janksoft.liftlog.core.ui.LiftLogTopBar
 import no.janksoft.liftlog.core.util.ApiState
@@ -115,7 +115,7 @@ fun UpdateExerciseScreen(
         }
     ) { paddingValues ->
         when {
-            updateState == ApiState.Loading -> {
+            updateState is ApiState.Loading -> {
                 LiftLogLoadingIndicator("Updating exercise ...")
             }
             updateState is ApiState.Error -> {
@@ -132,10 +132,11 @@ fun UpdateExerciseScreen(
                 LiftLogLoadingIndicator("Loading exercise ...")
             }
             selectedExerciseState is ApiState.Error -> {
-                ErrorDisplay(
+                ErrorDisplayWithRetry(
                     errorState = selectedExerciseState as ApiState.Error,
                     headerMessage = "Error loading exercise",
-                    onRetry = { viewModel.fetchExerciseById(exerciseId) }
+                    onRetry = { viewModel.fetchExerciseById(exerciseId) },
+                    onCancel = { navController.navigateUp() }
                 )
             }
             selectedExerciseState is ApiState.Success -> {

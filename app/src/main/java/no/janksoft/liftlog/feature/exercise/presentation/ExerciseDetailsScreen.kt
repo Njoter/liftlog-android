@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -32,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import no.janksoft.liftlog.core.ui.ErrorDisplayWithRetry
 import no.janksoft.liftlog.core.ui.LiftLogLoadingIndicator
 import no.janksoft.liftlog.core.ui.LiftLogTopBar
 import no.janksoft.liftlog.core.util.ApiState
@@ -40,6 +43,7 @@ import no.janksoft.liftlog.feature.exercise.data.model.Exercise
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseDetailsScreen(
+    userId: Long,
     exerciseId: Long,
     navController: NavController,
     viewModel: ExerciseListViewModel = viewModel()
@@ -87,13 +91,22 @@ fun ExerciseDetailsScreen(
             )
         }
     ) { paddingValues ->
-        ExerciseDetailContent(selectedExerciseState, paddingValues)
+        ExerciseDetailContent(
+            state = selectedExerciseState,
+            onLogSet = { navController.navigate("log_set/$exerciseId/$userId") },
+            onRetry = { viewModel.fetchExerciseById(exerciseId) },
+            onCancel = { navController.navigateUp() },
+            paddingValues = paddingValues
+        )
     }
 }
 
 @Composable
 fun ExerciseDetailContent(
     state: ApiState<Exercise>,
+    onLogSet: () -> Unit,
+    onRetry: () -> Unit,
+    onCancel: () -> Unit,
     paddingValues: PaddingValues
 ) {
     when (state) {
@@ -105,37 +118,83 @@ fun ExerciseDetailContent(
 
         is ApiState.Success -> {
             val exercise = state.data
+
             Column(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxSize()
                     .padding(paddingValues)
                     .padding(horizontal = 16.dp)
-                    .padding(top = 8.dp, bottom = 8.dp),
+                    .padding(top = 8.dp)
+                    .padding(bottom = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
-                Text(
-                    text = exercise.name,
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Text(
-                    text = "Current weight: ${exercise.weightKg}kg",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    text = "Current reps: ${exercise.reps}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    text = "Current sets: ${exercise.sets}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                Spacer(modifier = Modifier.weight(1f))
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    TitleText(exercise.name)
+                    BodyText("Current weight: ${exercise.weightKg}")
+                    BodyText("Current reps: ${exercise.reps}")
+                    BodyText("Current sets: ${exercise.sets}")
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Log set button
+                OutlinedButton(
+                    modifier = Modifier.height(52.dp),
+                    onClick = onLogSet
+                ) {
+                    Icon(Icons.Default.Edit, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Log set")
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
 
         is ApiState.Error -> {
-            Text(state.errorResponse?.message ?: "Error fetching exercise")
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                ErrorDisplayWithRetry(
+                    errorState = state,
+                    headerMessage = "Error fetching exercise",
+                    onRetry = onRetry,
+                    onCancel = onCancel
+                )
+            }
         }
     }
+}
+
+@Composable
+fun TitleText(
+    text: String
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleLarge
+    )
+}
+
+@Composable
+fun BodyText(
+    text: String
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyLarge
+    )
 }
 
 @Composable
