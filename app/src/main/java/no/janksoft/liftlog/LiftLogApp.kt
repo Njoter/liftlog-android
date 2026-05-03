@@ -72,7 +72,9 @@ fun LiftLogApp() {
             ExerciseDetailsScreen(
                 userId = userId,
                 exerciseId = exerciseId,
-                navController = navController
+                onNavigateUp = { navController.navigateUp() },
+                onEditExercise = { navController.navigate("update_exercise/$exerciseId") },
+                onLogSet = { navController.navigate("log_set/$userId/$exerciseId") }
             )
         }
 

@@ -47,7 +47,7 @@ fun LogSetScreen(
     workoutSetViewModel: WorkoutSetViewModel = viewModel()
 ) {
     val selectedExercise by exerciseListViewModel.selectedExercise.collectAsStateWithLifecycle()
-    val logWorkoutSetState by workoutSetViewModel.logSetState.collectAsStateWithLifecycle()
+    val logWorkoutSetState by workoutSetViewModel.logWorkoutSetState.collectAsStateWithLifecycle()
 
     LaunchedEffect(exerciseId) {
         exerciseListViewModel.fetchExerciseById(exerciseId)
