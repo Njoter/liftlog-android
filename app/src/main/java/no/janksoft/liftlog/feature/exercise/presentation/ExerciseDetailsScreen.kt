@@ -28,74 +28,89 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import no.janksoft.liftlog.core.ui.ErrorDisplayWithRetry
 import no.janksoft.liftlog.core.ui.LiftLogLoadingIndicator
 import no.janksoft.liftlog.core.ui.LiftLogTopBar
 import no.janksoft.liftlog.core.util.ApiState
 import no.janksoft.liftlog.feature.exercise.data.model.Exercise
+import no.janksoft.liftlog.feature.workout.data.model.WorkoutSetResponse
+import no.janksoft.liftlog.feature.workout.presentation.WorkoutSetViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseDetailsScreen(
     userId: Long,
     exerciseId: Long,
-    navController: NavController,
-    viewModel: ExerciseListViewModel = viewModel()
+    onNavigateUp: () -> Unit,
+    onEditExercise: () -> Unit,
+    onLogSet: () -> Unit,
+    exerciseListViewModel: ExerciseListViewModel = viewModel(),
+    workoutSetViewModel: WorkoutSetViewModel = viewModel()
 ) {
-    val selectedExerciseState by viewModel.selectedExercise.collectAsStateWithLifecycle()
-    val deleteState by viewModel.deleteState.collectAsStateWithLifecycle()
+    val selectedExerciseState by exerciseListViewModel.selectedExercise.collectAsStateWithLifecycle()
+    val setsThisWeekState by workoutSetViewModel.setsThisWeekState.collectAsStateWithLifecycle()
+    val setsThisMonthState by workoutSetViewModel.setsThisMonthState.collectAsStateWithLifecycle()
+    val deleteState by exerciseListViewModel.deleteState.collectAsStateWithLifecycle()
+
+    // Fetch the selected exercise
+    LaunchedEffect(exerciseId) {
+        exerciseListViewModel.fetchExerciseById(exerciseId)
+        workoutSetViewModel.fetchWorkoutSetsByExerciseThisWeek(exerciseId)
+        workoutSetViewModel.fetchWorkoutSetsByExerciseThisMonth(exerciseId)
+    }
 
     // Handle delete result
     LaunchedEffect(deleteState) {
         when (deleteState) {
             is ApiState.Success -> {
-                viewModel.clearDeleteState()
-                navController.navigateUp()
+                exerciseListViewModel.clearDeleteState()
+                onNavigateUp
             }
+
             is ApiState.Error -> {
                 val errorMsg = (deleteState as ApiState.Error).message
                 // TODO: Add some kind of message for the result of the delete
-                viewModel.clearDeleteState()
+                exerciseListViewModel.clearDeleteState()
             }
+
             else -> {}
         }
-    }
-
-    LaunchedEffect(exerciseId) {
-        viewModel.fetchExerciseById(exerciseId)
     }
 
     Scaffold(
         topBar = {
             LiftLogTopBar(
-                "Exercise Details",
-                { navController.navigateUp() },
-                true
+                title = "Exercise Details",
+                onNavigateBack = onNavigateUp,
+                showBackButton = true
             )
         },
         bottomBar = {
             ExerciseDetailBottomBar(
                 state = selectedExerciseState,
-                onEdit = {
-                    navController.navigate("update_exercise/$exerciseId")
-                },
+                onEdit = onEditExercise,
                 onDelete = { exerciseId ->
-                    viewModel.deleteExercise(exerciseId)
+                    exerciseListViewModel.deleteExercise(exerciseId)
                 }
             )
         }
     ) { paddingValues ->
         ExerciseDetailContent(
-            state = selectedExerciseState,
-            onLogSet = { navController.navigate("log_set/$userId/$exerciseId") },
-            onRetry = { viewModel.fetchExerciseById(exerciseId) },
-            onCancel = { navController.navigateUp() },
+            selectedExerciseState = selectedExerciseState,
+            setsThisWeekState = setsThisWeekState,
+            setsThisMonthState = setsThisMonthState,
+            onLogSet = onLogSet,
+            onRetry = { exerciseListViewModel.fetchExerciseById(exerciseId) },
+            onCancel = onNavigateUp,
             paddingValues = paddingValues
         )
     }
@@ -103,21 +118,22 @@ fun ExerciseDetailsScreen(
 
 @Composable
 fun ExerciseDetailContent(
-    state: ApiState<Exercise>,
+    selectedExerciseState: ApiState<Exercise>,
+    setsThisWeekState: ApiState<WorkoutSetResponse>,
+    setsThisMonthState: ApiState<WorkoutSetResponse>,
     onLogSet: () -> Unit,
     onRetry: () -> Unit,
     onCancel: () -> Unit,
     paddingValues: PaddingValues
 ) {
-    when (state) {
-        ApiState.Idle -> {}
-
+    when (selectedExerciseState) {
+        is ApiState.Idle -> {}
         is ApiState.Loading -> {
             LiftLogLoadingIndicator("Loading exercise details ...")
         }
 
         is ApiState.Success -> {
-            val exercise = state.data
+            val exercise = selectedExerciseState.data
 
             Column(
                 modifier = Modifier
@@ -140,6 +156,13 @@ fun ExerciseDetailContent(
                     BodyText("Current weight: ${exercise.weightKg}")
                     BodyText("Current reps: ${exercise.reps}")
                     BodyText("Current sets: ${exercise.sets}")
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    PerformedSetsDisplay(
+                        setsThisWeekState = setsThisWeekState,
+                        setsThisMonthState = setsThisMonthState
+                    )
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -167,13 +190,69 @@ fun ExerciseDetailContent(
                 verticalArrangement = Arrangement.Center
             ) {
                 ErrorDisplayWithRetry(
-                    errorState = state,
+                    errorState = selectedExerciseState,
                     headerMessage = "Error fetching exercise",
                     onRetry = onRetry,
                     onCancel = onCancel
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun PerformedSetsDisplay(
+    setsThisWeekState: ApiState<WorkoutSetResponse>,
+    setsThisMonthState: ApiState<WorkoutSetResponse>
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        var totalRepsThisWeek by remember { mutableIntStateOf(0) }
+        var totalSetsThisWeek by remember { mutableIntStateOf(0) }
+        var totalRepsThisMonth by remember { mutableIntStateOf(0) }
+        var totalSetsThisMonth by remember { mutableIntStateOf(0) }
+
+        when (setsThisWeekState) {
+            is ApiState.Success -> {
+                val workoutSets = setsThisWeekState.data
+                totalRepsThisWeek = workoutSets.totalReps
+                totalSetsThisWeek = workoutSets.totalSets
+            }
+            else -> {
+                totalRepsThisWeek = 0
+                totalSetsThisWeek = 0
+            }
+        }
+        
+        when (setsThisMonthState) {
+            is ApiState.Success -> {
+                val workoutSets = setsThisMonthState.data
+                totalRepsThisMonth = workoutSets.totalReps
+                totalSetsThisMonth = workoutSets.totalSets
+            }
+            else -> {
+                totalRepsThisMonth = 0
+                totalSetsThisMonth = 0
+            }
+        }
+        Text(
+            text = "This week",
+            style = MaterialTheme.typography.titleMedium,
+            textDecoration = TextDecoration.Underline
+        )
+        BodyText("total reps: $totalRepsThisWeek")
+        BodyText("total sets: $totalSetsThisWeek")
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "This month",
+            style = MaterialTheme.typography.titleMedium,
+            textDecoration = TextDecoration.Underline
+        )
+        BodyText("total reps: $totalRepsThisMonth")
+        BodyText("total sets: $totalSetsThisMonth")
     }
 }
 
