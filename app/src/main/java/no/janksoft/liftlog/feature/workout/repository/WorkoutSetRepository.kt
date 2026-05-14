@@ -103,7 +103,7 @@ class WorkoutSetRepository {
 
     suspend fun fetchWorkoutSetByExerciseThisMonth(exerciseId: Long): ApiState<WorkoutSetResponse> {
         return try {
-            val response = workoutSetService.fetchWorkoutSetsByExerciseThisWeek(exerciseId)
+            val response = workoutSetService.fetchWorkoutSetsByExerciseThisMonth(exerciseId)
 
             if (response.isSuccessful) {
                 val workoutSets = response.body()
